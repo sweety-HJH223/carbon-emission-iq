@@ -15,6 +15,12 @@ export default function DashboardPage() {
   const [recentLogs, setRecentLogs] = useState<ActivityLog[]>([])
   const [loading, setLoading] = useState(true)
 
+  // Dynamic Background Logic
+  const totalCO2 = profile?.totalCO2 || 0
+  const isEden = totalCO2 < 100
+  const isDoom = totalCO2 >= 1000
+  const themeClass = isEden ? 'bg-[#f0faf4]' : isDoom ? 'bg-[#1a1a1a] text-white' : 'bg-white'
+
   useEffect(() => {
     async function fetchData() {
       if (user) {
@@ -86,46 +92,46 @@ export default function DashboardPage() {
   }))
 
   return (
-    <main className="min-h-screen bg-white px-6 py-12">
+    <main className={`min-h-screen px-6 py-12 transition-colors duration-1000 ${themeClass}`}>
       <div className="max-w-6xl mx-auto">
         {/* Greeting */}
         <h1
           style={{ fontFamily: 'DM Serif Display' }}
-          className="text-3xl md:text-4xl font-bold text-[#1a3d2b] mb-12"
+          className={`text-3xl md:text-4xl font-bold mb-12 ${isDoom ? 'text-[#e76f51]' : 'text-[#1a3d2b]'}`}
         >
-          Good morning, {profile?.displayName?.split(' ')[0]}.
+          {isDoom ? "Wake up," : "Good morning,"} {profile?.displayName?.split(' ')[0]}.
         </h1>
 
         {/* Stat Boxes */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <StatBox label="This Week" value={Number(weeklyTotal.toFixed(1))} unit="kg CO₂" subtitle="Total from last 7 days" />
-          <StatBox label="Total Lifetime" value={Number((profile?.totalCO2 || 0).toFixed(1))} unit="kg CO₂" subtitle="All-time carbon footprint" />
-          <StatBox label="Current Streak" value={profile?.streak || 0} unit="days" subtitle="Great job! Keep it up" />
+          <StatBox label="This Week" value={Number(weeklyTotal.toFixed(1))} unit="kg CO₂" subtitle="Total from last 7 days" isDoom={isDoom} />
+          <StatBox label="Total Lifetime" value={Number((profile?.totalCO2 || 0).toFixed(1))} unit="kg CO₂" subtitle="All-time carbon footprint" isDoom={isDoom} />
+          <StatBox label="Current Streak" value={profile?.streak || 0} unit="days" subtitle="Great job! Keep it up" isDoom={isDoom} />
         </div>
 
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
           {/* Weekly Line Chart */}
-          <div className="lg:col-span-2 border border-[#e0e0e0] rounded p-6">
-            <h2 className="text-lg font-bold text-[#1a3d2b] mb-6">Weekly Emissions</h2>
+          <div className={`border rounded p-6 ${isDoom ? 'bg-[#262626] border-[#333]' : 'border-[#e0e0e0] bg-white'}`}>
+            <h2 className={`text-lg font-bold mb-6 ${isDoom ? 'text-[#e76f51]' : 'text-[#1a3d2b]'}`}>Weekly Emissions</h2>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                <CartesianGrid strokeDasharray="3 3" stroke={isDoom ? "#333" : "#e0e0e0"} />
                 <XAxis dataKey="day" stroke="#999" />
                 <YAxis stroke="#999" />
-                <Tooltip contentStyle={{ backgroundColor: '#f5f0e8', border: 'none' }} />
-                <Line type="monotone" dataKey="value" stroke="#1a3d2b" strokeWidth={2} dot={{ fill: '#1a3d2b', r: 4 }} />
+                <Tooltip contentStyle={{ backgroundColor: isDoom ? '#1a1a1a' : '#f5f0e8', border: 'none' }} />
+                <Line type="monotone" dataKey="value" stroke={isDoom ? "#e76f51" : "#1a3d2b"} strokeWidth={2} dot={{ fill: isDoom ? "#e76f51" : "#1a3d2b", r: 4 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
           {/* Donut Chart */}
-          <div className="border border-[#e0e0e0] rounded p-6">
-            <h2 className="text-lg font-bold text-[#1a3d2b] mb-6">By Category</h2>
+          <div className={`border rounded p-6 ${isDoom ? 'bg-[#262626] border-[#333]' : 'border-[#e0e0e0] bg-white'}`}>
+            <h2 className={`text-lg font-bold mb-6 ${isDoom ? 'text-[#e76f51]' : 'text-[#1a3d2b]'}`}>By Category</h2>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={categoryData.length > 0 ? categoryData : [{ name: 'No Data', value: 1, color: '#e0e0e0' }]}
+                  data={categoryData.length > 0 ? categoryData : [{ name: 'No Data', value: 1, color: isDoom ? '#333' : '#e0e0e0' }]}
                   cx="50%"
                   cy="50%"
                   innerRadius={40}
@@ -137,7 +143,7 @@ export default function DashboardPage() {
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ backgroundColor: '#f5f0e8', border: 'none' }} />
+                <Tooltip contentStyle={{ backgroundColor: isDoom ? '#1a1a1a' : '#f5f0e8', border: 'none' }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -148,8 +154,8 @@ export default function DashboardPage() {
           {categoryData.map((cat) => (
             <div key={cat.name} className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color }}></div>
-              <span className="text-sm text-[#666]">
-                {cat.name} <span className="font-bold">{cat.value}kg</span>
+              <span className={`text-sm ${isDoom ? 'text-[#999]' : 'text-[#666]'}`}>
+                {cat.name} <span className={`font-bold ${isDoom ? 'text-white' : ''}`}>{cat.value}kg</span>
               </span>
             </div>
           ))}
@@ -158,44 +164,44 @@ export default function DashboardPage() {
         <FutureSelf currentAnnualKg={4200} streak={7} />
 
         {/* Today's Challenge */}
-        <div className="bg-[#f5f0e8] rounded p-8 mb-12">
+        <div className={`rounded p-8 mb-12 ${isDoom ? 'bg-[#262626] border border-[#333]' : 'bg-[#f5f0e8]'}`}>
           <h2
             style={{ fontFamily: 'DM Serif Display' }}
-            className="text-2xl font-bold text-[#1a3d2b] mb-2"
+            className={`text-2xl font-bold mb-2 ${isDoom ? 'text-[#e76f51]' : 'text-[#1a3d2b]'}`}
           >
             Daily Mission
           </h2>
-          <p className="text-[#666] mb-4">
+          <p className={`${isDoom ? 'text-[#999]' : 'text-[#666]'} mb-4`}>
             Head over to the Challenges page to see your daily AI-generated mission and boost your streak!
           </p>
           <button 
             onClick={() => window.location.href = '/challenges'}
-            className="bg-[#1a3d2b] text-white px-6 py-2 rounded hover:bg-[#2d6a4f] transition-colors"
+            className={`px-6 py-2 rounded transition-colors ${isDoom ? 'bg-[#e76f51] text-white hover:bg-[#cf5d41]' : 'bg-[#1a3d2b] text-white hover:bg-[#2d6a4f]'}`}
           >
             Go to Challenges
           </button>
         </div>
 
         {/* Recent Activity */}
-        <div className="border border-[#e0e0e0] rounded p-6">
-          <h2 className="text-lg font-bold text-[#1a3d2b] mb-6">Recent Activity</h2>
+        <div className={`border rounded p-6 ${isDoom ? 'bg-[#262626] border-[#333]' : 'border-[#e0e0e0] bg-white'}`}>
+          <h2 className={`text-lg font-bold mb-6 ${isDoom ? 'text-[#e76f51]' : 'text-[#1a3d2b]'}`}>Recent Activity</h2>
           <div className="space-y-4">
             {recentLogs.length > 0 ? (
               recentLogs.map((log) => (
-                <div key={log.id} className="flex justify-between items-center border-b border-[#e0e0e0] pb-4 last:border-b-0">
+                <div key={log.id} className={`flex justify-between items-center border-b pb-4 last:border-b-0 ${isDoom ? 'border-[#333]' : 'border-[#e0e0e0]'}`}>
                   <div>
-                    <p className="font-medium text-[#1a3d2b]">{log.activity}</p>
-                    <p className="text-sm text-[#999]">
+                    <p className={`font-medium ${isDoom ? 'text-white' : 'text-[#1a3d2b]'}`}>{log.activity}</p>
+                    <p className={`text-sm ${isDoom ? 'text-[#666]' : 'text-[#999]'}`}>
                       {log.createdAt?.toDate().toLocaleDateString()} {log.createdAt?.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
-                  <p className="font-bold text-[#1a3d2b]">
+                  <p className={`font-bold ${isDoom ? 'text-[#e76f51]' : 'text-[#1a3d2b]'}`}>
                     {log.co2_kg} kg CO₂
                   </p>
                 </div>
               ))
             ) : (
-              <p className="text-[#666] text-center py-4">No activities logged yet.</p>
+              <p className={`text-center py-4 ${isDoom ? 'text-[#666]' : 'text-[#666]'}`}>No activities logged yet.</p>
             )}
           </div>
         </div>

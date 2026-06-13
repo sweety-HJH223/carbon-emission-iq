@@ -61,8 +61,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = async () => {
     try {
       await signInWithPopup(auth, googleProvider);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Sign in error:", error);
+      alert(`Sign in failed: ${error.message}`);
     }
   };
 

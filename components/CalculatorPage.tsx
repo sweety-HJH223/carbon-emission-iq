@@ -21,7 +21,7 @@ interface AnalysisResult {
 }
 
 export default function CalculatorPage() {
-  const { user, profile } = useAuth()
+  const { user, profile, refreshProfile, signInWithGoogle } = useAuth()
   const router = useRouter()
 
   const [activeTab, setActiveTab] = useState<'type' | 'scan'>('type')
@@ -72,7 +72,10 @@ export default function CalculatorPage() {
         setStage('confirm')
       } else {
         setStage('result')
-        if (user) setSavedToDashboard(true)
+        if (user) {
+          setSavedToDashboard(true)
+          await refreshProfile()
+        }
       }
     } catch (err: any) {
       setError(err.message || 'Something went wrong. Please try again.')
@@ -130,6 +133,7 @@ export default function CalculatorPage() {
           tip: analysisResult.tip,
           comparison: analysisResult.comparison,
         })
+        await refreshProfile()
         setSavedToDashboard(true)
       }
       setStage('result')
@@ -420,10 +424,26 @@ export default function CalculatorPage() {
                   ✓ Saved to your Carbon Passport
                 </p>
               )}
+              {!savedToDashboard && user && (
+                <button
+                  onClick={handleConfirm}
+                  disabled={loading}
+                  className="text-xs text-blue-600 mt-3 font-medium hover:underline"
+                >
+                  {loading ? 'Saving...' : '↑ Save this result to your passport'}
+                </button>
+              )}
               {!user && (
-                <p className="text-xs text-[#999] mt-3">
+                <button 
+                  onClick={() => {
+                    const navSignIn = document.querySelector('nav button') as HTMLButtonElement;
+                    if (navSignIn) navSignIn.click();
+                    else signInWithGoogle();
+                  }}
+                  className="text-xs text-[#999] mt-3 hover:text-[#1a3d2b] transition-colors underline"
+                >
                   Sign in to save this to your passport
-                </p>
+                </button>
               )}
             </div>
 

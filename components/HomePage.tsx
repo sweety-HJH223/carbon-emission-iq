@@ -9,35 +9,45 @@ export default function HomePage() {
   const { user, profile } = useAuth()
   const annualEstimate = profile ? (profile.totalCO2 / 1000).toFixed(2) : "0.00"
 
+  // Dynamic Background Logic
+  const totalCO2 = profile?.totalCO2 || 0
+  const getTheme = () => {
+    if (totalCO2 < 100) return 'bg-[#f0faf4]' // Eden (Lush Green)
+    if (totalCO2 < 1000) return 'bg-white' // Neutral
+    return 'bg-[#1a1a1a] text-white' // Doom (Industrial)
+  }
+  const themeClass = getTheme()
+  const isDoom = totalCO2 >= 1000
+
   return (
-    <main className="min-h-screen bg-white">
+    <main className={`min-h-screen transition-colors duration-1000 ${themeClass}`}>
       {/* Hero Section */}
       <section className="px-6 py-16 md:py-24 max-w-4xl mx-auto">
         <div className="text-center mb-12">
           <h1
             style={{ fontFamily: 'DM Serif Display' }}
-            className="text-5xl md:text-6xl font-bold text-[#1a3d2b] mb-4 leading-tight"
+            className={`text-5xl md:text-6xl font-bold mb-4 leading-tight ${isDoom ? 'text-[#e76f51]' : 'text-[#1a3d2b]'}`}
           >
-            Know Your Earth Debt.
+            {isDoom ? "Pay Your Earth Debt." : "Know Your Earth Debt."}
           </h1>
-          <p className="text-lg text-[#666] mb-8 max-w-2xl mx-auto">
-            Track your personal carbon footprint with precision. Every action matters.
+          <p className={`text-lg mb-8 max-w-2xl mx-auto ${isDoom ? 'text-[#999]' : 'text-[#666]'}`}>
+            {isDoom ? "The atmosphere is heavy. Your footprint has exceeded safe limits." : "Track your personal carbon footprint with precision. Every action matters."}
           </p>
           <Link
             href="/calculate"
-            className="inline-block bg-[#1a3d2b] text-white px-8 py-3 rounded hover:bg-[#2d6a4f] transition-colors"
+            className={`inline-block px-8 py-3 rounded transition-colors ${isDoom ? 'bg-[#e76f51] text-white hover:bg-[#cf5d41]' : 'bg-[#1a3d2b] text-white hover:bg-[#2d6a4f]'}`}
           >
-            Start Tracking
+            {isDoom ? "Offset Now" : "Start Tracking"}
           </Link>
         </div>
 
         {/* Animated Counter */}
-        <div className="border border-[#e0e0e0] rounded p-8 md:p-12 bg-[#f5f0e8] text-center mb-16">
-          <p className="text-sm text-[#666] mb-2">{user ? "Your Recorded Footprint" : "Current Annual Estimate"}</p>
-          <p className="text-5xl md:text-6xl font-bold text-[#1a3d2b]">
+        <div className={`border rounded p-8 md:p-12 text-center mb-16 ${isDoom ? 'bg-[#262626] border-[#333]' : 'bg-[#f5f0e8] border-[#e0e0e0]'}`}>
+          <p className={`text-sm mb-2 ${isDoom ? 'text-[#666]' : 'text-[#666]'}`}>{user ? "Your Recorded Footprint" : "Current Annual Estimate"}</p>
+          <p className={`text-5xl md:text-6xl font-bold ${isDoom ? 'text-[#e76f51]' : 'text-[#1a3d2b]'}`}>
             {user ? annualEstimate : "4.2"}
           </p>
-          <p className="text-lg text-[#999] mt-2">tonnes CO₂ {user ? "logged" : "per year (avg)"}</p>
+          <p className={`text-lg mt-2 ${isDoom ? 'text-[#444]' : 'text-[#999]'}`}>tonnes CO₂ {user ? "logged" : "per year (avg)"}</p>
         </div>
 
         <CarbonDebtClock totalCO2Kg={profile?.totalCO2 || 0} />

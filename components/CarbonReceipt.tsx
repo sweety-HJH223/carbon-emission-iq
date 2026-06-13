@@ -170,9 +170,22 @@ export default function CarbonReceipt({
 
             {/* Footer */}
             <div className="py-4 text-center">
-              <p className="text-xs text-[#999] mb-1">
+              <p className="text-xs text-[#999] mb-3">
                 Track. Understand. Reduce.
               </p>
+              
+              {/* QR Code Bridge */}
+              <div className="flex flex-col items-center mb-4">
+                <div className="bg-white p-2 border border-[#eee] rounded mb-2">
+                  <img 
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=https://carboniq.app/receipt/${receiptId}&color=1a3d2b`} 
+                    alt="Scan Receipt"
+                    className="w-20 h-20 grayscale"
+                  />
+                </div>
+                <p className="text-[8px] text-[#999] uppercase tracking-[0.2em]">Scan to Sync with Planet</p>
+              </div>
+
               <p className="text-xs font-bold text-[#1a3d2b] tracking-widest">
                 CARBONIQ.APP
               </p>
