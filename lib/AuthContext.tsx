@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { onAuthStateChanged, signInWithRedirect, getRedirectResult, signOut, User, GoogleAuthProvider } from "firebase/auth";
+import { onAuthStateChanged, signInWithPopup, signOut, User, GoogleAuthProvider } from "firebase/auth";
 import { auth, googleProvider } from "./firebase";
 import { createOrUpdateUser, getUserProfile, UserProfile } from "./db";
 
@@ -29,60 +29,64 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Handle redirect result
-    getRedirectResult(auth).then((result) => {
-      if (result?.user) {
-        console.log("Redirect sign in success")
-      }
-    }).catch((error) => {
-      console.error("Redirect error:", error)
-    })
-
+    console.log("AuthProvider: Initializing...");
+    
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
+      console.log("AuthProvider: Auth state changed", firebaseUser?.email);
       setUser(firebaseUser);
+      
       if (firebaseUser) {
-        // Create or fetch user profile
-        const existingProfile = await getUserProfile(firebaseUser.uid);
-        if (!existingProfile) {
-          const newProfile: UserProfile = {
-            uid: firebaseUser.uid,
-            displayName: firebaseUser.displayName || "User",
-            email: firebaseUser.email || "",
-            photoURL: firebaseUser.photoURL || "",
-            streak: 0,
-            bestStreak: 0,
-            totalCO2: 0,
-            badges: ["FIRST LOG"],
-          };
-          await createOrUpdateUser(newProfile);
-          setProfile(newProfile);
-        } else {
-          setProfile(existingProfile);
+        try {
+          // Create or fetch user profile
+          const existingProfile = await getUserProfile(firebaseUser.uid);
+          if (!existingProfile) {
+            const newProfile: UserProfile = {
+              uid: firebaseUser.uid,
+              displayName: firebaseUser.displayName || "User",
+              email: firebaseUser.email || "",
+              photoURL: firebaseUser.photoURL || "",
+              streak: 0,
+              bestStreak: 0,
+              totalCO2: 0,
+              badges: ["FIRST LOG"],
+            };
+            await createOrUpdateUser(newProfile);
+            setProfile(newProfile);
+          } else {
+            setProfile(existingProfile);
+          }
+        } catch (error) {
+          console.error("AuthProvider: Error fetching profile", error);
         }
       } else {
         setProfile(null);
       }
       setLoading(false);
     });
+
     return () => unsub();
   }, []);
 
   const signInWithGoogle = async () => {
     try {
-      const provider = new GoogleAuthProvider()
-      provider.setCustomParameters({
-        prompt: 'select_account'
-      })
-      await signInWithRedirect(auth, provider)
+      console.log("AuthProvider: Starting sign in...");
+      // Using Popup for better local development support
+      const result = await signInWithPopup(auth, googleProvider);
+      console.log("AuthProvider: Sign in successful", result.user.email);
     } catch (error: any) {
-      console.error("Sign in error:", error)
-      alert(`Sign in failed: ${error.message}`)
+      console.error("AuthProvider: Sign in error", error);
+      alert(`Sign in failed: ${error.message}`);
     }
   }
 
   const logout = async () => {
-    await signOut(auth);
-    setProfile(null);
+    try {
+      await signOut(auth);
+      setProfile(null);
+      console.log("AuthProvider: Signed out");
+    } catch (error) {
+      console.error("AuthProvider: Logout error", error);
+    }
   };
 
   const refreshProfile = async () => {
