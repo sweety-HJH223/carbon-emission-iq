@@ -1,6 +1,7 @@
 const getGeminiUrl = () => {
   const key = process.env.GEMINI_API_KEY;
-  return `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
+  // Switching to v1 stable endpoint
+  return `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${key}`;
 };
 
 export interface AnalysisResult {
@@ -22,6 +23,7 @@ export interface ChallengeResult {
   challenge: string;
   category: string;
   co2Saving: number;
+  difficulty: "Easy" | "Medium" | "Hard";
   reason: string;
 }
 
@@ -167,13 +169,24 @@ export async function analyzeImage(base64Image: string, mimeType: string): Promi
 
 export async function generateDailyChallenge(topCategory: string, weeklyLogs: string, streak: number): Promise<ChallengeResult> {
   try {
+    const prompt = `You are a carbon footprint coach for Indian users. 
+User's top emission category is ${topCategory}. 
+User's weekly activity summary: ${weeklyLogs}. 
+User's current streak: ${streak} days.
+
+Create a personalized daily eco-challenge.
+Return ONLY this JSON: 
+{"challenge":"Walk for trips under 2km today","category":"Travel","co2Saving":0.4,"difficulty":"Easy","reason":"Short trips are perfect for walking"}
+
+Difficulty should be 'Easy' (0.1-0.5kg), 'Medium' (0.5-1.5kg), or 'Hard' (1.5kg+).
+If streak > 5, suggest Medium/Hard challenges.`;
+
     const response = await fetch(getGeminiUrl(), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: `Carbon coach for Indian users. Top category: ${topCategory}. Streak: ${streak} days.
-Return ONLY this JSON: {"challenge":"Walk for trips under 2km today","category":"Travel","co2Saving":0.4,"reason":"Short trips are perfect for walking"}` }] }],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 200 },
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.7, maxOutputTokens: 250 },
       }),
     });
     
@@ -187,6 +200,6 @@ Return ONLY this JSON: {"challenge":"Walk for trips under 2km today","category":
     throw new Error("Parse failed");
   } catch (error) {
     console.error("generateDailyChallenge error:", error);
-    return { challenge: "Avoid AC for 2 hours today, use a fan instead", category: "Energy", co2Saving: 0.3, reason: "Small energy changes add up daily." };
+    return { challenge: "Avoid AC for 2 hours today, use a fan instead", category: "Energy", co2Saving: 0.3, difficulty: "Easy", reason: "Small energy changes add up daily." };
   }
 }

@@ -47,6 +47,7 @@ import {
     challenge: string;
     category: string;
     co2Saving: number;
+    difficulty: "Easy" | "Medium" | "Hard";
     completed: boolean;
   }
   
@@ -143,7 +144,9 @@ import {
     const badges = [...(profile.badges || [])];
     if (newStreak >= 3 && !badges.includes("3-DAY STREAK")) badges.push("3-DAY STREAK");
     if (newStreak >= 7 && !badges.includes("7-DAY STREAK")) badges.push("7-DAY STREAK");
+    if (newStreak >= 14 && !badges.includes("14-DAY STREAK")) badges.push("14-DAY STREAK");
     if (newStreak >= 30 && !badges.includes("CARBON HERO")) badges.push("CARBON HERO");
+    if (newStreak >= 100 && !badges.includes("CENTURION")) badges.push("CENTURION");
   
     await updateUserProfile(uid, {
       streak: newStreak,
@@ -160,8 +163,12 @@ import {
     const newTotal = (profile.totalCO2 || 0) + co2;
     const badges = [...(profile.badges || [])];
   
-    if (newTotal >= 10 && !badges.includes("FIRST LOG")) badges.push("FIRST LOG");
-    if (newTotal >= 100 && !badges.includes("SAVED 10KG")) badges.push("SAVED 10KG");
+    if (newTotal >= 1 && !badges.includes("FIRST LOG")) badges.push("FIRST LOG");
+    if (newTotal >= 10 && !badges.includes("SAVED 10KG")) badges.push("SAVED 10KG");
+    if (newTotal >= 50 && !badges.includes("SAVED 50KG")) badges.push("SAVED 50KG");
+    if (newTotal >= 100 && !badges.includes("ECO WARRIOR")) badges.push("ECO WARRIOR");
+    if (newTotal >= 500 && !badges.includes("PLANET PROTECTOR")) badges.push("PLANET PROTECTOR");
+    if (newTotal >= 1000 && !badges.includes("EARTH GUARDIAN")) badges.push("EARTH GUARDIAN");
   
     await updateUserProfile(uid, { totalCO2: newTotal, badges });
   }

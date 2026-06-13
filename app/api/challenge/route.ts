@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
       challenge: result.challenge,
       category: result.category,
       co2Saving: result.co2Saving,
+      difficulty: result.difficulty,
       completed: false,
     };
 
