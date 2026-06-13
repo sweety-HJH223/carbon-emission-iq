@@ -29,12 +29,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getRedirectResult(auth).catch((error) => {
-      console.error("Redirect sign-in error:", error);
-    });
-  }, []);
+    // Handle redirect result
+    getRedirectResult(auth).then((result) => {
+      if (result?.user) {
+        console.log("Redirect sign in success")
+      }
+    }).catch((error) => {
+      console.error("Redirect error:", error)
+    })
 
-  useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       if (firebaseUser) {
@@ -72,7 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
       await signInWithRedirect(auth, provider)
     } catch (error: any) {
-      console.error("Sign in error:", error.code, error.message)
+      console.error("Sign in error:", error)
       alert(`Sign in failed: ${error.message}`)
     }
   }
