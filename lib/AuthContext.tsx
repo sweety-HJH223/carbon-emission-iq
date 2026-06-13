@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { onAuthStateChanged, signInWithPopup, signOut, User } from "firebase/auth";
+import { onAuthStateChanged, signInWithPopup, signOut, User, GoogleAuthProvider } from "firebase/auth";
 import { auth, googleProvider } from "./firebase";
 import { createOrUpdateUser, getUserProfile, UserProfile } from "./db";
 
@@ -60,12 +60,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithGoogle = async () => {
     try {
-      await signInWithPopup(auth, googleProvider);
+      const provider = new GoogleAuthProvider()
+      provider.setCustomParameters({
+        prompt: 'select_account'
+      })
+      await signInWithPopup(auth, provider)
     } catch (error: any) {
-      console.error("Sign in error:", error);
-      alert(`Sign in failed: ${error.message}`);
+      console.error("Sign in error:", error.code, error.message)
+      alert(`Sign in failed: ${error.message}`)
     }
-  };
+  }
 
   const logout = async () => {
     await signOut(auth);
