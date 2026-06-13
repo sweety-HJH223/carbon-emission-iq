@@ -1,7 +1,7 @@
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY!;
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-
-console.log("API KEY EXISTS:", !!process.env.GEMINI_API_KEY);
+const getGeminiUrl = () => {
+  const key = process.env.GEMINI_API_KEY;
+  return `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
+};
 
 export interface AnalysisResult {
   extracted: {
@@ -26,16 +26,13 @@ export interface ChallengeResult {
 }
 
 function parseGeminiJSON(text: string): any {
-  // Robust cleaning: handle markdown code blocks and extra text
   let clean = text.trim();
   
-  // Remove markdown code blocks if present
   if (clean.includes("```")) {
     const match = clean.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
     if (match) clean = match[1];
   }
   
-  // If still not a simple object, try finding the first { and last }
   if (!clean.startsWith("{")) {
     const firstBrace = clean.indexOf("{");
     const lastBrace = clean.lastIndexOf("}");
@@ -46,7 +43,6 @@ function parseGeminiJSON(text: string): any {
 
   try { return JSON.parse(clean); } catch {}
   
-  // Last resort: basic cleanup
   try {
     const fixed = clean
       .replace(/,\s*}/g, "}")
@@ -71,6 +67,14 @@ function fallbackResult(input: string): AnalysisResult {
 }
 
 export async function analyzeText(userInput: string, category?: string): Promise<AnalysisResult> {
+  const key = process.env.GEMINI_API_KEY;
+  console.log("AnalyzeText: Using API Key starting with:", key ? key.substring(0, 4) + "..." : "MISSING");
+
+  if (!key) {
+    console.error("CRITICAL: GEMINI_API_KEY is not defined in environment variables.");
+    return fallbackResult(userInput);
+  }
+
   const prompt = `You are a carbon footprint analyzer for Indian users.
 User said: "${userInput}"
 ${category ? `Category hint: ${category}` : ""}
@@ -93,7 +97,7 @@ Return ONLY this JSON object with no other text:
 {"extracted":{"activity":"drove petrol car 50km","quantity":50,"unit":"km","confidence":"high"},"co2_kg":10.5,"calculation":"50 km x 0.21 kg/km","category":"Travel","tip":"Try carpooling to save fuel and reduce emissions","comparison":"= leaving a 60W bulb on for 175 hours","needs_confirmation":false}`;
 
   try {
-    const response = await fetch(GEMINI_URL, {
+    const response = await fetch(getGeminiUrl(), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -103,32 +107,36 @@ Return ONLY this JSON object with no other text:
     });
     
     if (!response.ok) { 
-      const errorData = await response.json().catch(() => ({}));
-      console.error("Gemini API error:", response.status, errorData);
+      const errorText = await response.text();
+      console.error("Gemini API Error Status:", response.status, response.statusText);
+      console.error("Gemini API Error Body:", errorText);
       return fallbackResult(userInput); 
     }
     
     const data = await response.json();
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    console.log("Gemini raw text:", text);
+    console.log("Gemini Output Text:", text);
     
     const parsed = parseGeminiJSON(text);
     if (parsed && parsed.co2_kg !== undefined) return parsed as AnalysisResult;
     
-    console.error("Parse failed for text:", text);
+    console.error("Failed to parse Gemini output as JSON:", text);
     return fallbackResult(userInput);
-  } catch (error) {
-    console.error("analyzeText error:", error);
+  } catch (error: any) {
+    console.error("AnalyzeText exception:", error.message || error);
     return fallbackResult(userInput);
   }
 }
 
 export async function analyzeImage(base64Image: string, mimeType: string): Promise<AnalysisResult> {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) return fallbackResult("image scan");
+
   const prompt = `Analyze this bill/receipt. Return ONLY this JSON with no other text:
 {"extracted":{"activity":"electricity usage","quantity":234,"unit":"kWh","confidence":"high"},"co2_kg":191.9,"calculation":"234 kWh x 0.82","category":"Energy","tip":"Switch to LED bulbs","comparison":"= 133 days of a 60W bulb","needs_confirmation":false}`;
 
   try {
-    const response = await fetch(GEMINI_URL, {
+    const response = await fetch(getGeminiUrl(), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -139,36 +147,32 @@ export async function analyzeImage(base64Image: string, mimeType: string): Promi
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error("Gemini API error (image):", response.status, errorData);
+      console.error("Gemini Image API Error:", response.status, errorData);
       return fallbackResult("image scan");
     }
     
     const data = await response.json();
-    console.log("RAW GEMINI IMAGE DATA:", JSON.stringify(data));
-    
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    console.log("Gemini image text:", text);
+    console.log("Gemini Image Output Text:", text);
     
     const parsed = parseGeminiJSON(text);
     if (parsed && parsed.co2_kg !== undefined) return parsed as AnalysisResult;
     
     return { ...fallbackResult("image"), needs_confirmation: true };
-  } catch (error) {
-    console.error("analyzeImage error:", error);
+  } catch (error: any) {
+    console.error("AnalyzeImage exception:", error.message || error);
     return fallbackResult("image scan");
   }
 }
 
 export async function generateDailyChallenge(topCategory: string, weeklyLogs: string, streak: number): Promise<ChallengeResult> {
-  const prompt = `Carbon coach for Indian users. Top category: ${topCategory}. Streak: ${streak} days.
-Return ONLY this JSON: {"challenge":"Walk for trips under 2km today","category":"Travel","co2Saving":0.4,"reason":"Short trips are perfect for walking"}`;
-
   try {
-    const response = await fetch(GEMINI_URL, {
+    const response = await fetch(getGeminiUrl(), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
+        contents: [{ parts: [{ text: `Carbon coach for Indian users. Top category: ${topCategory}. Streak: ${streak} days.
+Return ONLY this JSON: {"challenge":"Walk for trips under 2km today","category":"Travel","co2Saving":0.4,"reason":"Short trips are perfect for walking"}` }] }],
         generationConfig: { temperature: 0.7, maxOutputTokens: 200 },
       }),
     });
