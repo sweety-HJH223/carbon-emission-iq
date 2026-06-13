@@ -108,6 +108,8 @@ export async function analyzeImage(base64Image: string, mimeType: string): Promi
     if (!response.ok) return fallbackResult("image scan");
     const data = await response.json();
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    console.log("RAW GEMINI:", JSON.stringify(data))
+    console.log("TEXT:", text)
     const parsed = parseGeminiJSON(text);
     if (parsed && parsed.co2_kg !== undefined) return parsed as AnalysisResult;
     return { ...fallbackResult("image"), needs_confirmation: true };
