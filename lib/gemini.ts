@@ -1,6 +1,8 @@
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY!;
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
+console.log("API KEY EXISTS:", !!process.env.GEMINI_API_KEY);
+
 export interface AnalysisResult {
   extracted: {
     activity: string;
@@ -24,14 +26,35 @@ export interface ChallengeResult {
 }
 
 function parseGeminiJSON(text: string): any {
-  let clean = text.replace(/```json/gi, "").replace(/```/g, "").trim();
+  // Robust cleaning: handle markdown code blocks and extra text
+  let clean = text.trim();
+  
+  // Remove markdown code blocks if present
+  if (clean.includes("```")) {
+    const match = clean.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (match) clean = match[1];
+  }
+  
+  // If still not a simple object, try finding the first { and last }
+  if (!clean.startsWith("{")) {
+    const firstBrace = clean.indexOf("{");
+    const lastBrace = clean.lastIndexOf("}");
+    if (firstBrace !== -1 && lastBrace !== -1) {
+      clean = clean.substring(firstBrace, lastBrace + 1);
+    }
+  }
+
   try { return JSON.parse(clean); } catch {}
-  const jsonMatch = clean.match(/\{[\s\S]*\}/);
-  if (jsonMatch) { try { return JSON.parse(jsonMatch[0]); } catch {} }
+  
+  // Last resort: basic cleanup
   try {
-    const fixed = clean.replace(/,\s*}/g, "}").replace(/,\s*]/g, "]").replace(/'/g, '"');
+    const fixed = clean
+      .replace(/,\s*}/g, "}")
+      .replace(/,\s*]/g, "]")
+      .replace(/'/g, '"');
     return JSON.parse(fixed);
   } catch {}
+  
   return null;
 }
 
@@ -78,13 +101,21 @@ Return ONLY this JSON object with no other text:
         generationConfig: { temperature: 0.1, maxOutputTokens: 600 },
       }),
     });
-    if (!response.ok) { console.error("Gemini error:", response.status); return fallbackResult(userInput); }
+    
+    if (!response.ok) { 
+      const errorData = await response.json().catch(() => ({}));
+      console.error("Gemini API error:", response.status, errorData);
+      return fallbackResult(userInput); 
+    }
+    
     const data = await response.json();
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    console.log("Gemini response:", text);
+    console.log("Gemini raw text:", text);
+    
     const parsed = parseGeminiJSON(text);
     if (parsed && parsed.co2_kg !== undefined) return parsed as AnalysisResult;
-    console.error("Parse failed for:", text);
+    
+    console.error("Parse failed for text:", text);
     return fallbackResult(userInput);
   } catch (error) {
     console.error("analyzeText error:", error);
@@ -105,13 +136,22 @@ export async function analyzeImage(base64Image: string, mimeType: string): Promi
         generationConfig: { temperature: 0.1, maxOutputTokens: 600 },
       }),
     });
-    if (!response.ok) return fallbackResult("image scan");
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error("Gemini API error (image):", response.status, errorData);
+      return fallbackResult("image scan");
+    }
+    
     const data = await response.json();
+    console.log("RAW GEMINI IMAGE DATA:", JSON.stringify(data));
+    
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    console.log("RAW GEMINI:", JSON.stringify(data))
-    console.log("TEXT:", text)
+    console.log("Gemini image text:", text);
+    
     const parsed = parseGeminiJSON(text);
     if (parsed && parsed.co2_kg !== undefined) return parsed as AnalysisResult;
+    
     return { ...fallbackResult("image"), needs_confirmation: true };
   } catch (error) {
     console.error("analyzeImage error:", error);
@@ -132,13 +172,17 @@ Return ONLY this JSON: {"challenge":"Walk for trips under 2km today","category":
         generationConfig: { temperature: 0.7, maxOutputTokens: 200 },
       }),
     });
-    if (!response.ok) throw new Error("API error");
+    
+    if (!response.ok) throw new Error(`API error: ${response.status}`);
+    
     const data = await response.json();
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
     const parsed = parseGeminiJSON(text);
+    
     if (parsed && parsed.challenge) return parsed as ChallengeResult;
     throw new Error("Parse failed");
-  } catch {
+  } catch (error) {
+    console.error("generateDailyChallenge error:", error);
     return { challenge: "Avoid AC for 2 hours today, use a fan instead", category: "Energy", co2Saving: 0.3, reason: "Small energy changes add up daily." };
   }
 }

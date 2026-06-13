@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { onAuthStateChanged, signInWithPopup, signOut, User, GoogleAuthProvider } from "firebase/auth";
+import { onAuthStateChanged, signInWithPopup, signOut, User } from "firebase/auth";
 import { auth, googleProvider } from "./firebase";
 import { createOrUpdateUser, getUserProfile, UserProfile } from "./db";
 
@@ -37,7 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (firebaseUser) {
         try {
-          // Create or fetch user profile
+          // Fetch or create user profile
           const existingProfile = await getUserProfile(firebaseUser.uid);
           if (!existingProfile) {
             const newProfile: UserProfile = {
@@ -70,12 +70,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = async () => {
     try {
       console.log("AuthProvider: Starting sign in...");
-      // Using Popup for better local development support
+      // Using Popup for best local development compatibility
       const result = await signInWithPopup(auth, googleProvider);
       console.log("AuthProvider: Sign in successful", result.user.email);
     } catch (error: any) {
       console.error("AuthProvider: Sign in error", error);
-      alert(`Sign in failed: ${error.message}`);
+      // Don't alert on cancel
+      if (error.code !== 'auth/popup-closed-by-user') {
+        alert(`Sign in failed: ${error.message}`);
+      }
     }
   }
 
@@ -83,6 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await signOut(auth);
       setProfile(null);
+      setUser(null);
       console.log("AuthProvider: Signed out");
     } catch (error) {
       console.error("AuthProvider: Logout error", error);
