@@ -89,11 +89,12 @@ import {
     const q = query(
       ref,
       where("userId", "==", uid),
-      orderBy("createdAt", "desc"),
       limit(limitCount)
     );
     const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as ActivityLog));
+    const logs = snap.docs.map((d) => ({ id: d.id, ...d.data() } as ActivityLog));
+    // Sort in-memory to avoid composite index requirement
+    return logs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
   }
   
   export async function getWeeklyLogs(uid: string): Promise<ActivityLog[]> {
@@ -104,11 +105,12 @@ import {
     const q = query(
       ref,
       where("userId", "==", uid),
-      where("createdAt", ">=", sevenDaysAgo),
-      orderBy("createdAt", "desc")
+      where("createdAt", ">=", sevenDaysAgo)
     );
     const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as ActivityLog));
+    const logs = snap.docs.map((d) => ({ id: d.id, ...d.data() } as ActivityLog));
+    // Sort in-memory to avoid composite index requirement
+    return logs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
   }
   
   // ─── STREAK MANAGEMENT ────────────────────────────────────
@@ -197,7 +199,9 @@ import {
   
   export async function getWeeklyChallenges(uid: string): Promise<DailyChallenge[]> {
     const ref = collection(db, "dailyChallenges");
-    const q = query(ref, where("userId", "==", uid), orderBy("date", "desc"), limit(7));
+    const q = query(ref, where("userId", "==", uid), limit(7));
     const snap = await getDocs(q);
-    return snap.docs.map((d) => d.data() as DailyChallenge);
+    const challenges = snap.docs.map((d) => d.data() as DailyChallenge);
+    // Sort in-memory to avoid composite index requirement
+    return challenges.sort((a, b) => b.date.localeCompare(a.date));
   }
