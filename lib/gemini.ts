@@ -1,9 +1,3 @@
-const getGeminiUrl = () => {
-  const key = process.env.GEMINI_API_KEY;
-  // Switching to v1 stable endpoint
-  return `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${key}`;
-};
-
 export interface AnalysisResult {
   extracted: {
     activity: string;
@@ -68,14 +62,11 @@ function fallbackResult(input: string): AnalysisResult {
   };
 }
 
-export async function analyzeText(userInput: string, category?: string): Promise<AnalysisResult> {
-  const key = process.env.GEMINI_API_KEY;
-  console.log("AnalyzeText: Using API Key starting with:", key ? key.substring(0, 4) + "..." : "MISSING");
+const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
-  if (!key) {
-    console.error("CRITICAL: GEMINI_API_KEY is not defined in environment variables.");
-    return fallbackResult(userInput);
-  }
+export async function analyzeText(userInput: string, category?: string): Promise<AnalysisResult> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("GEMINI_API_KEY missing");
 
   const prompt = `You are a carbon footprint analyzer for Indian users.
 User said: "${userInput}"
@@ -99,24 +90,22 @@ Return ONLY this JSON object with no other text:
 {"extracted":{"activity":"drove petrol car 50km","quantity":50,"unit":"km","confidence":"high"},"co2_kg":10.5,"calculation":"50 km x 0.21 kg/km","category":"Travel","tip":"Try carpooling to save fuel and reduce emissions","comparison":"= leaving a 60W bulb on for 175 hours","needs_confirmation":false}`;
 
   try {
-    const response = await fetch(getGeminiUrl(), {
+    const response = await fetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey
+      },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.1, maxOutputTokens: 600 },
-      }),
+        generationConfig: { temperature: 0.1, maxOutputTokens: 600 }
+      })
     });
     
-    if (!response.ok) { 
-      const errorText = await response.text();
-      console.error("Gemini API Error Status:", response.status, response.statusText);
-      console.error("Gemini API Error Body:", errorText);
-      return fallbackResult(userInput); 
-    }
-    
+    if (!response.ok) throw new Error(`API error: ${response.status}`);
     const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const text = data.candidates[0].content.parts[0].text;
+    
     console.log("Gemini Output Text:", text);
     
     const parsed = parseGeminiJSON(text);
@@ -125,36 +114,58 @@ Return ONLY this JSON object with no other text:
     console.error("Failed to parse Gemini output as JSON:", text);
     return fallbackResult(userInput);
   } catch (error: any) {
+    if (error.message?.includes('429') || 
+        error.message?.includes('quota')) {
+      await new Promise(r => setTimeout(r, 3000))
+      
+      // retry once
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey
+        },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.1, maxOutputTokens: 600 }
+        })
+      });
+      const data = await response.json();
+      const retryText = data.candidates[0].content.parts[0].text;
+      const retryParsed = parseGeminiJSON(retryText)
+      if (retryParsed) return retryParsed
+    }
     console.error("AnalyzeText exception:", error.message || error);
     return fallbackResult(userInput);
   }
 }
 
 export async function analyzeImage(base64Image: string, mimeType: string): Promise<AnalysisResult> {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) return fallbackResult("image scan");
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("GEMINI_API_KEY missing");
 
   const prompt = `Analyze this bill/receipt. Return ONLY this JSON with no other text:
 {"extracted":{"activity":"electricity usage","quantity":234,"unit":"kWh","confidence":"high"},"co2_kg":191.9,"calculation":"234 kWh x 0.82","category":"Energy","tip":"Switch to LED bulbs","comparison":"= 133 days of a 60W bulb","needs_confirmation":false}`;
 
   try {
-    const response = await fetch(getGeminiUrl(), {
+    const response = await fetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey
+      },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: mimeType, data: base64Image } }] }],
-        generationConfig: { temperature: 0.1, maxOutputTokens: 600 },
-      }),
+        contents: [{ parts: [
+          { text: prompt },
+          { inlineData: { mimeType: mimeType, data: base64Image } }
+        ] }]
+      })
     });
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error("Gemini Image API Error:", response.status, errorData);
-      return fallbackResult("image scan");
-    }
-    
+
+    if (!response.ok) throw new Error(`API error: ${response.status}`);
     const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const text = data.candidates[0].content.parts[0].text;
+    
     console.log("Gemini Image Output Text:", text);
     
     const parsed = parseGeminiJSON(text);
@@ -168,8 +179,10 @@ export async function analyzeImage(base64Image: string, mimeType: string): Promi
 }
 
 export async function generateDailyChallenge(topCategory: string, weeklyLogs: string, streak: number): Promise<ChallengeResult> {
-  try {
-    const prompt = `You are a carbon footprint coach for Indian users. 
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("GEMINI_API_KEY missing");
+
+  const prompt = `You are a carbon footprint coach for Indian users. 
 User's top emission category is ${topCategory}. 
 User's weekly activity summary: ${weeklyLogs}. 
 User's current streak: ${streak} days.
@@ -181,19 +194,23 @@ Return ONLY this JSON:
 Difficulty should be 'Easy' (0.1-0.5kg), 'Medium' (0.5-1.5kg), or 'Hard' (1.5kg+).
 If streak > 5, suggest Medium/Hard challenges.`;
 
-    const response = await fetch(getGeminiUrl(), {
+  try {
+    const response = await fetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey
+      },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 250 },
-      }),
+        generationConfig: { temperature: 0.7, maxOutputTokens: 250 }
+      })
     });
-    
+
     if (!response.ok) throw new Error(`API error: ${response.status}`);
-    
     const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const text = data.candidates[0].content.parts[0].text;
+    
     const parsed = parseGeminiJSON(text);
     
     if (parsed && parsed.challenge) return parsed as ChallengeResult;

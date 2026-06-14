@@ -47,7 +47,7 @@ import {
     challenge: string;
     category: string;
     co2Saving: number;
-    difficulty: "Easy" | "Medium" | "Hard";
+    difficulty?: "Easy" | "Medium" | "Hard";
     completed: boolean;
   }
   
@@ -102,15 +102,22 @@ import {
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
   
     const ref = collection(db, "activityLogs");
+    // Fetch all logs for the user (index on userId only)
     const q = query(
       ref,
-      where("userId", "==", uid),
-      where("createdAt", ">=", sevenDaysAgo)
+      where("userId", "==", uid)
     );
     const snap = await getDocs(q);
     const logs = snap.docs.map((d) => ({ id: d.id, ...d.data() } as ActivityLog));
-    // Sort in-memory to avoid composite index requirement
-    return logs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    
+    // Filter and sort in-memory
+    return logs
+      .filter(log => {
+        if (!log.createdAt) return false;
+        const logDate = log.createdAt.toDate ? log.createdAt.toDate() : new Date(log.createdAt);
+        return logDate >= sevenDaysAgo;
+      })
+      .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
   }
   
   // ─── STREAK MANAGEMENT ────────────────────────────────────

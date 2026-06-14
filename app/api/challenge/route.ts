@@ -42,14 +42,15 @@ export async function POST(req: NextRequest) {
       profile.streak || 0
     );
 
+    const today = new Date().toISOString().split("T")[0];
     const challenge = {
       userId,
-      date: new Date().toISOString().split("T")[0],
+      date: today,
       challenge: result.challenge,
       category: result.category,
       co2Saving: result.co2Saving,
-      difficulty: result.difficulty,
       completed: false,
+      difficulty: 'Easy' as const,
     };
 
     await saveDailyChallenge(challenge);
