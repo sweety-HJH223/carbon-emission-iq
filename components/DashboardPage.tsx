@@ -15,7 +15,7 @@ export default function DashboardPage() {
   const [recentLogs, setRecentLogs] = useState<ActivityLog[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Dynamic Background Logic
+  
   const totalCO2 = profile?.totalCO2 || 0
   const isEden = totalCO2 < 100
   const isDoom = totalCO2 >= 1000
@@ -60,10 +60,10 @@ export default function DashboardPage() {
     )
   }
 
-  // Calculate Stats
+ 
   const weeklyTotal = logs.reduce((acc, log) => acc + log.co2_kg, 0)
-  // Simple monthly estimate or filter logs if we had more
-  const monthlyTotal = profile?.totalCO2 || 0 // Or calculate from more logs
+  // Simple monthly estimate 
+  const monthlyTotal = profile?.totalCO2 || 0 
 
   // Prepare Weekly Chart Data (Last 7 days)
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']

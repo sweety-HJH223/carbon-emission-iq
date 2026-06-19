@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "User ID required" }, { status: 400 });
     }
   
-    // This could also fetch from DB, but for simplicity we'll just handle it in the component 
-    // or provide a simple GET here.
+    // fetch from DB
+  
     return NextResponse.json({ message: "Use POST to generate" });
 }

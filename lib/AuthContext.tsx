@@ -70,12 +70,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = async () => {
     try {
       console.log("AuthProvider: Starting sign in...");
-      // Using Popup for best local development compatibility
+    
       const result = await signInWithPopup(auth, googleProvider);
       console.log("AuthProvider: Sign in successful", result.user.email);
     } catch (error: any) {
       console.error("AuthProvider: Sign in error", error);
-      // Don't alert on cancel
+      
       if (error.code !== 'auth/popup-closed-by-user') {
         alert(`Sign in failed: ${error.message}`);
       }

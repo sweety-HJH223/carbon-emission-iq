@@ -26,7 +26,7 @@ export default function FutureSelf({
   const currentYear = new Date().getFullYear()
 
   // Reduction rate from 1% daily challenge
-  // ~1% per week compounded realistically
+ 
   const CHALLENGE_REDUCTION = 0.08 // 8% per year if doing challenges
   const FUEL_SAVINGS_PER_KG = 85 // ₹ saved per kg CO2 avoided (fuel cost)
 
@@ -54,7 +54,7 @@ export default function FutureSelf({
   const moneySaved = co2Saved * (FUEL_SAVINGS_PER_KG / 1000)
   const treeEquivalent = Math.round(co2Saved / 21)
 
-  // Carbon age (planet burden equivalent)
+
   const carbonAge = Math.round(25 + (currentAnnualKg / 1000) * 5)
   const carbonAgeWithApp = Math.round(carbonAge * 0.7)
 

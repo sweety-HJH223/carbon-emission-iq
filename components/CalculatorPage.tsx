@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/AuthContext'
 import { saveActivityLog } from '@/lib/db'
 import CarbonReceipt from '@/components/CarbonReceipt'
+
 interface AnalysisResult {
   extracted: {
     activity: string
@@ -33,7 +34,7 @@ export default function CalculatorPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Stages: 'input' | 'confirm' | 'result'
+  // Manage UI stage progression: 'input' formulation -> 'confirm' check -> 'result' screen
   const [stage, setStage] = useState<'input' | 'confirm' | 'result'>('input')
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null)
   const [savedToDashboard, setSavedToDashboard] = useState(false)
@@ -41,7 +42,7 @@ export default function CalculatorPage() {
 
   const categories = ['Travel', 'Energy', 'Food', 'Shopping', 'Waste']
 
-  // ── ANALYZE TEXT ──────────────────────────────────────
+  // Text description submission handler
   const handleAnalyzeText = async () => {
     if (!typeInput.trim() || typeInput.trim().length < 5) {
       setError('Please describe your activity in a bit more detail.')
@@ -58,7 +59,7 @@ export default function CalculatorPage() {
           text: typeInput,
           category: selectedCategory,
           userId: user?.uid || null,
-        }),
+         }),
       })
 
       const data = await res.json()
@@ -66,8 +67,7 @@ export default function CalculatorPage() {
 
       setAnalysisResult(data.result)
 
-      // If AI is confident → go straight to result
-      // If not → show confirmation screen
+      // Dynamic flow based on AI certainty score
       if (data.result.needs_confirmation) {
         setStage('confirm')
       } else {
@@ -84,7 +84,7 @@ export default function CalculatorPage() {
     }
   }
 
-  // ── SCAN IMAGE ────────────────────────────────────────
+  
   const handleScanImage = async () => {
     if (!uploadFile) {
       setError('Please upload an image first.')
@@ -97,7 +97,8 @@ export default function CalculatorPage() {
       const formData = new FormData()
       formData.append('image', uploadFile)
       formData.append('userId', user?.uid || '')
-      formData.append('confirmed', 'false') // don't auto-save, show confirmation
+      formData.append('confirmed', 'false') 
+
 
       const res = await fetch('/api/scan', {
         method: 'POST',
@@ -108,7 +109,7 @@ export default function CalculatorPage() {
       if (!res.ok) throw new Error(data.error || 'Scan failed')
 
       setAnalysisResult(data.result)
-      // Always show confirmation for image scans
+      
       setStage('confirm')
     } catch (err: any) {
       setError(err.message || 'Image scan failed. Try a clearer photo.')
@@ -117,7 +118,7 @@ export default function CalculatorPage() {
     }
   }
 
-  // ── CONFIRM & SAVE ────────────────────────────────────
+  //  CONFIRM & SAVE 
   const handleConfirm = async () => {
     if (!analysisResult) return
     setLoading(true)
@@ -144,7 +145,7 @@ export default function CalculatorPage() {
     }
   }
 
-  // ── FILE UPLOAD ───────────────────────────────────────
+  // FILE UPLOAD 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -178,7 +179,7 @@ export default function CalculatorPage() {
     setError(null)
   }
 
-  // ── CONFIDENCE COLOR ──────────────────────────────────
+ 
   const confidenceColor = {
     high: 'text-green-600 bg-green-50',
     medium: 'text-yellow-600 bg-yellow-50',

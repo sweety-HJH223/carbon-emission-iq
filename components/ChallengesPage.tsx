@@ -13,7 +13,7 @@ export default function ChallengesPage() {
   const [actionLoading, setActionLoading] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
 
-  // Weekly goal (kg saved)
+  // Weekly goal 
   const weeklyGoal = 5.0
   const savedThisWeek = weeklyPlan
     .filter(c => c.completed)

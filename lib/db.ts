@@ -14,7 +14,6 @@ import {
   } from "firebase/firestore";
   import { db } from "./firebase";
   
-  // ─── TYPES ────────────────────────────────────────────────
   export interface ActivityLog {
     id?: string;
     userId: string;
@@ -51,9 +50,12 @@ import {
     completed: boolean;
   }
   
-  // ─── USER PROFILE ─────────────────────────────────────────
+  /**
+   * User Profile Management
+   */
   export async function createOrUpdateUser(profile: UserProfile) {
     const ref = doc(db, "users", profile.uid);
+ 
     await setDoc(ref, { ...profile, updatedAt: serverTimestamp() }, { merge: true });
   }
   
@@ -68,7 +70,9 @@ import {
     await updateDoc(ref, { ...data, updatedAt: serverTimestamp() });
   }
   
-  // ─── ACTIVITY LOGS ────────────────────────────────────────
+  /**
+   * Log tracking & History
+   */
   export async function saveActivityLog(log: ActivityLog): Promise<string> {
     const ref = collection(db, "activityLogs");
     const docRef = await addDoc(ref, {
@@ -76,9 +80,8 @@ import {
       createdAt: serverTimestamp(),
     });
   
-    // Update user's total CO2
+  
     await updateUserTotalCO2(log.userId, log.co2_kg);
-    // Update streak
     await updateStreak(log.userId);
   
     return docRef.id;
@@ -93,7 +96,7 @@ import {
     );
     const snap = await getDocs(q);
     const logs = snap.docs.map((d) => ({ id: d.id, ...d.data() } as ActivityLog));
-    // Sort in-memory to avoid composite index requirement
+   
     return logs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
   }
   
@@ -102,7 +105,6 @@ import {
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
   
     const ref = collection(db, "activityLogs");
-    // Fetch all logs for the user (index on userId only)
     const q = query(
       ref,
       where("userId", "==", uid)
@@ -110,7 +112,7 @@ import {
     const snap = await getDocs(q);
     const logs = snap.docs.map((d) => ({ id: d.id, ...d.data() } as ActivityLog));
     
-    // Filter and sort in-memory
+    // Filtering 7-day window
     return logs
       .filter(log => {
         if (!log.createdAt) return false;
@@ -120,7 +122,9 @@ import {
       .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
   }
   
-  // ─── STREAK MANAGEMENT ────────────────────────────────────
+  /**
+   * Logic for maintaining daily streaks
+   */
   async function updateStreak(uid: string) {
     const profile = await getUserProfile(uid);
     if (!profile) return;
@@ -130,26 +134,22 @@ import {
   
     let newStreak = profile.streak || 0;
   
-    if (lastLog === today) {
-      // Already logged today, no streak change
-      return;
-    }
+    // Prevent double-counting streaks on the same day
+    if (lastLog === today) return;
   
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().split("T")[0];
   
     if (lastLog === yesterdayStr) {
-      // Consecutive day
       newStreak += 1;
     } else {
-      // Streak broken
       newStreak = 1;
     }
   
     const newBest = Math.max(newStreak, profile.bestStreak || 0);
   
-    // Check for new badges
+    // Awarding badges based on milestones
     const badges = [...(profile.badges || [])];
     if (newStreak >= 3 && !badges.includes("3-DAY STREAK")) badges.push("3-DAY STREAK");
     if (newStreak >= 7 && !badges.includes("7-DAY STREAK")) badges.push("7-DAY STREAK");
@@ -182,7 +182,7 @@ import {
     await updateUserProfile(uid, { totalCO2: newTotal, badges });
   }
   
-  // ─── DAILY CHALLENGE ──────────────────────────────────────
+ 
   export async function saveDailyChallenge(challenge: DailyChallenge) {
     const id = `${challenge.userId}_${challenge.date}`;
     const ref = doc(db, "dailyChallenges", id);
@@ -209,6 +209,6 @@ import {
     const q = query(ref, where("userId", "==", uid), limit(7));
     const snap = await getDocs(q);
     const challenges = snap.docs.map((d) => d.data() as DailyChallenge);
-    // Sort in-memory to avoid composite index requirement
+    
     return challenges.sort((a, b) => b.date.localeCompare(a.date));
   }

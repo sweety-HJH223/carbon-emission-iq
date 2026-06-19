@@ -8,7 +8,7 @@ interface CarbonReceiptProps {
   category: string
   calculation: string
   tip: string
-  totalDebt?: number // user's running total in kg
+  totalDebt?: number 
   onClose?: () => void
 }
 

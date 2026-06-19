@@ -12,7 +12,7 @@ export default function PassportPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Trigger typewriter animation on mount
+    // Trigger typewriter animation 
     setShowContent(true)
 
     async function fetchLogs() {
@@ -52,7 +52,7 @@ export default function PassportPage() {
     )
   }
 
-  // Logic
+
   const totalCO2 = profile?.totalCO2 || 0
   const carbonId = user.uid.substring(0, 8).toUpperCase()
   
@@ -67,7 +67,7 @@ export default function PassportPage() {
   const equivalentNation = getNation(totalCO2)
   const annualEstimate = (totalCO2 / 1000).toFixed(2)
 
-  // Breakdown
+  
   const categories: Record<string, number> = {}
   logs.forEach(log => {
     categories[log.category] = (categories[log.category] || 0) + log.co2_kg

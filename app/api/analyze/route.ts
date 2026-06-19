@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     const result = await analyzeText(text, category);
     console.log("Gemini analysis result:", result);
 
-    // If confident and user is logged in, save to Firestore
+    //  save to Firestore
     if (userId && !result.needs_confirmation) {
       await saveActivityLog({
         userId,
