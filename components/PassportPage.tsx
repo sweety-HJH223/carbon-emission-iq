@@ -12,7 +12,6 @@ export default function PassportPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Trigger typewriter animation 
     setShowContent(true)
 
     async function fetchLogs() {
@@ -52,10 +51,9 @@ export default function PassportPage() {
     )
   }
 
-
   const totalCO2 = profile?.totalCO2 || 0
   const carbonId = user.uid.substring(0, 8).toUpperCase()
-  
+
   const getNation = (co2: number) => {
     if (co2 < 1000) return "Bangladesh"
     if (co2 < 2000) return "India avg"
@@ -67,7 +65,6 @@ export default function PassportPage() {
   const equivalentNation = getNation(totalCO2)
   const annualEstimate = (totalCO2 / 1000).toFixed(2)
 
-  
   const categories: Record<string, number> = {}
   logs.forEach(log => {
     categories[log.category] = (categories[log.category] || 0) + log.co2_kg
@@ -86,6 +83,73 @@ export default function PassportPage() {
     { id: "CARBON HERO", icon: "★" },
     { id: "CLIMATE LEADER", icon: "◈" },
   ]
+
+  const handleExportPassport = () => {
+    const content = [
+      "CARBON PASSPORT",
+      "================",
+      `NAME: ${profile?.displayName?.toUpperCase()}`,
+      `CARBON_ID: ${carbonId}`,
+      `TOTAL_EMISSIONS: ${totalCO2.toFixed(1)} kg CO₂ (~${annualEstimate} tonnes)`,
+      `EQUIVALENT_NATION: ${equivalentNation.toUpperCase()}`,
+      `STREAK: ${profile?.streak} DAYS (BEST: ${profile?.bestStreak})`,
+      `STATUS: ${totalCO2 < 500 ? 'ECO_WARRIOR' : 'REDUCING_FOOTPRINT'}`,
+      "",
+      "EMISSIONS BREAKDOWN:",
+      ...breakdown.map(b => `  ${b.category}: ${b.percentage}%`),
+      "",
+      "BADGES UNLOCKED:",
+      ...(profile?.badges || []).map(b => `  [✓] ${b}`),
+      "",
+      `Generated: ${new Date().toLocaleString()}`,
+      "carbonemissioniq.vercel.app",
+    ].join("\n")
+
+    const blob = new Blob([content], { type: "text/plain" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `carbon-passport-${carbonId}.txt`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleGenerateReport = () => {
+    const rows = [
+      ["Date", "Activity", "Category", "CO2 (kg)", "Calculation", "Tip"],
+      ...logs.map(log => {
+        let dateStr = "N/A"
+        try {
+          const raw = log.createdAt
+          if (raw?.toDate) {
+            dateStr = raw.toDate().toLocaleDateString()
+          } else if (raw) {
+            dateStr = new Date(raw).toLocaleDateString()
+          }
+        } catch {}
+        return [
+          dateStr,
+          log.activity || "",
+          log.category || "",
+          log.co2_kg?.toString() || "0",
+          log.calculation || "",
+          log.tip || "",
+        ]
+      })
+    ]
+
+    const csv = rows.map(r =>
+      r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+    ).join("\n")
+
+    const blob = new Blob([csv], { type: "text/csv" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `carbon-report-${carbonId}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   return (
     <main
@@ -111,12 +175,10 @@ export default function PassportPage() {
           </Link>
         </div>
 
-        {/* Terminal Card with Glow */}
+        {/* Terminal Card */}
         <div
-          className="border-2 rounded p-8 md:p-12 glow"
-          style={{
-            borderColor: '#4ade80',
-          }}
+          className="border-2 rounded p-8 md:p-12"
+          style={{ borderColor: '#4ade80' }}
         >
           {/* Header */}
           <div className="text-center mb-8 border-b border-[#4ade80] pb-6">
@@ -128,33 +190,28 @@ export default function PassportPage() {
             </p>
           </div>
 
-          {/* Passport Info Grid */}
+          {/* Passport Info */}
           <div className="space-y-6 mb-8">
             <div className="border-b border-[#4ade80] pb-4 opacity-90">
               <p style={{ color: '#4ade80', opacity: 0.7, fontSize: '0.875rem' }}>NAME:</p>
               <p className="text-lg">{profile?.displayName?.toUpperCase()}</p>
             </div>
-
             <div className="border-b border-[#4ade80] pb-4 opacity-80">
               <p style={{ color: '#4ade80', opacity: 0.7, fontSize: '0.875rem' }}>CARBON_ID:</p>
               <p className="text-lg">{carbonId}</p>
             </div>
-
             <div className="border-b border-[#4ade80] pb-4 opacity-70">
               <p style={{ color: '#4ade80', opacity: 0.7, fontSize: '0.875rem' }}>TOTAL_EMISSIONS:</p>
               <p className="text-lg">{totalCO2.toFixed(1)} kg CO₂ (~{annualEstimate} tonnes)</p>
             </div>
-
             <div className="border-b border-[#4ade80] pb-4 opacity-60">
               <p style={{ color: '#4ade80', opacity: 0.7, fontSize: '0.875rem' }}>EQUIVALENT_NATION:</p>
               <p className="text-lg">{equivalentNation.toUpperCase()}</p>
             </div>
-
             <div className="border-b border-[#4ade80] pb-4 opacity-50">
               <p style={{ color: '#4ade80', opacity: 0.7, fontSize: '0.875rem' }}>STREAK_RECORD:</p>
               <p className="text-lg">{profile?.streak} DAYS (BEST: {profile?.bestStreak})</p>
             </div>
-
             <div className="border-b border-[#4ade80] pb-4 opacity-40">
               <p style={{ color: '#4ade80', opacity: 0.7, fontSize: '0.875rem' }}>STATUS:</p>
               <p className="text-lg">ACTIVE - {totalCO2 < 500 ? 'ECO_WARRIOR' : 'REDUCING_FOOTPRINT'}</p>
@@ -187,7 +244,7 @@ export default function PassportPage() {
             </div>
           </div>
 
-          {/* Emissions by Category - Text Based */}
+          {/* Emissions Breakdown */}
           <div className="mb-8 space-y-3">
             <p style={{ color: '#4ade80', opacity: 0.7, fontSize: '0.875rem' }}>EMISSIONS_BREAKDOWN:</p>
             {breakdown.length > 0 ? (
@@ -211,10 +268,16 @@ export default function PassportPage() {
 
           {/* Action Buttons */}
           <div className="flex flex-col gap-3 pt-6 border-t border-[#4ade80]">
-            <button className="w-full py-2 border border-[#4ade80] rounded hover:bg-[#4ade8020] transition-colors">
+            <button
+              onClick={handleExportPassport}
+              className="w-full py-2 border border-[#4ade80] rounded hover:bg-[#4ade8020] transition-colors"
+            >
               {'> EXPORT PASSPORT'}
             </button>
-            <button className="w-full py-2 border border-[#4ade80] rounded hover:bg-[#4ade8020] transition-colors">
+            <button
+              onClick={handleGenerateReport}
+              className="w-full py-2 border border-[#4ade80] rounded hover:bg-[#4ade8020] transition-colors"
+            >
               {'> GENERATE REPORT'}
             </button>
           </div>

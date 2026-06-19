@@ -65,18 +65,27 @@ export default function CalculatorPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Analysis failed')
 
-      setAnalysisResult(data.result)
+        setAnalysisResult(data.result)
 
-      // Dynamic flow based on AI certainty score
-      if (data.result.needs_confirmation) {
-        setStage('confirm')
-      } else {
-        setStage('result')
-        if (user) {
-          setSavedToDashboard(true)
-          await refreshProfile()
+        // Dynamic flow based on AI certainty score
+        if (data.result.needs_confirmation) {
+          setStage('confirm')
+        } else {
+          setStage('result')
+          if (user) {
+            await saveActivityLog({
+              userId: user.uid,
+              activity: data.result.extracted.activity,
+              category: data.result.category,
+              co2_kg: data.result.co2_kg,
+              calculation: data.result.calculation,
+              tip: data.result.tip,
+              comparison: data.result.comparison,
+            })
+            setSavedToDashboard(true)
+            await refreshProfile()
+          }
         }
-      }
     } catch (err: any) {
       setError(err.message || 'Something went wrong. Please try again.')
     } finally {
