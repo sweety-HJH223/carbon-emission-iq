@@ -48,9 +48,10 @@ export default function Navigation() {
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-bold text-[#1a3d2b] leading-none">{profile?.displayName}</p>
                 <button 
-                  onClick={logout}
-                  className="text-xs text-[#666] hover:text-[#1a3d2b] transition-colors"
-                >
+                    onClick={logout}
+                    aria-label="Sign out"
+                    className="text-xs text-[#666] hover:text-[#1a3d2b] transition-colors"
+                  >
                   Sign Out
                 </button>
               </div>
@@ -69,8 +70,9 @@ export default function Navigation() {
           ) : (
             <button
               onClick={signInWithGoogle}
+              aria-label="Sign in with Google"
               className="px-4 py-2 bg-[#1a3d2b] text-white text-sm rounded hover:bg-[#2d6a4f] transition-colors"
-            >
+                >
               Sign In
             </button>
           )}

@@ -240,10 +240,10 @@ export default function CalculatorPage() {
             {activeTab === 'type' && (
               <div className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-[#1a3d2b] mb-3">
-                    What did you do today?
+                <label htmlFor="activity-input" className="block text-sm font-medium text-[#1a3d2b] mb-3">
                   </label>
                   <textarea
+                    id="activity-input"
                     value={typeInput}
                     onChange={(e) => setTypeInput(e.target.value)}
                     placeholder={`e.g. "drove 45km in my petrol car today"\ne.g. "had chicken biryani for lunch"\ne.g. "my electricity bill was 234 units this month"`}
@@ -315,7 +315,7 @@ export default function CalculatorPage() {
                       <div className="space-y-3">
                         <img
                           src={imagePreview}
-                          alt="Preview"
+                          alt="Uploaded bill or receipt preview"
                           className="max-h-48 mx-auto rounded border border-[#e0e0e0] object-contain"
                         />
                         <p className="text-sm text-[#1a3d2b] font-medium">✓ {uploadFile?.name}</p>
