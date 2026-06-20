@@ -77,7 +77,7 @@ const CHALLENGE_RESPONSE_SCHEMA = {
   required: ["challenge", "category", "co2Saving", "difficulty", "reason"],
 };
 
-function parseGeminiJSON(text: string): unknown {
+export function parseGeminiJSON(text: string): unknown {
   let clean = text.trim();
   clean = clean.replace(/<thinking>[\s\S]*?<\/thinking>/gi, "").trim();
 
@@ -98,6 +98,19 @@ function parseGeminiJSON(text: string): unknown {
   }
 
   return null;
+}
+
+
+export function fallbackResult(input: string): AnalysisResult {
+  return {
+    extracted: { activity: input.slice(0, 100), quantity: 1, unit: "activity", confidence: "low" },
+    co2_kg: 2.5,
+    calculation: "Estimated average activity",
+    category: "Travel",
+    tip: "Be more specific about distance or quantity for accurate CO2 calculation.",
+    comparison: "= approximately 30 phone charges",
+    needs_confirmation: true,
+  };
 }
 
 function extractGeminiText(data: any): string | null {
