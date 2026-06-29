@@ -3,7 +3,7 @@
 **Know your earth debt. Track it. Reduce it.**
 
 🔗 Live: [carbon-emission-iq.vercel.app](https://carbon-emission-iq.vercel.app)
-💻 Code: [github.com/sweety-HJH223/-carbon-emission-iq](https://github.com/sweety-HJH223/-carbon-emission-iq)
+💻 Code: [github.com/sweety-HJH223/carbon-emission-iq](https://github.com/sweety-HJH223/carbon-emission-iq)
 
 So this is a carbon footprint tracker, but I tried to build the version I'd actually want to use — not another form with five dropdowns asking me to pick "transport type" and "distance unit." You just type what you did. "Drove 45km in a bus and ate 1kg of beef." AI figures out the rest.
 
@@ -109,5 +109,5 @@ npm run dev
 ```
 
 ---
-👩‍💻 Built By - **SweetyCodes**
-Built for **PromptWars Virtual — Main Challenge 3**.
+## 👩‍💻 Built By
+**SweetyCodes** — [sweetycodes-jh.vercel.app](https://sweetycodes-jh.vercel.app/)
